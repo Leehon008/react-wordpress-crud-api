@@ -1,0 +1,277 @@
+# wordpress-react-integrate
+A simple way to intgerate a react app into wordpress widget using a shortcode syntax 
+
+# Yo Milk React-WordPress integration
+
+This project contains the react-wordpress integration files for the Yo Milk Word Press site.
+
+These steps are intended to be for a remote site, the purpose being **To Create a react app that you can embed in a wordPress site widget**
+
+## Prerequisites👍
+
+I will presume you have Node.js already installed
+
+If not then follow [Installing Node Js](https://www.google.com/url?sa=t&rct=j&q=&esrc=s&source=web&cd=&cad=rja&uact=8&ved=2ahUKEwiJ1_XYx8DuAhWUX8AKHeV8CncQFjAFegQICxAC&url=https%3A%2F%2Fdocs.npmjs.com%2Fdownloading-and-installing-node-js-and-npm%2F&usg=AOvVaw3Pw1wQN5mr41ewdKqwO4kC)
+
+ftp client installed or follow
+
+[Ftp download ](https://www.google.com/url?sa=t&rct=j&q=&esrc=s&source=web&cd=&cad=rja&uact=8&ved=2ahUKEwjmkajLyMDuAhUgQUEAHbMoAIAQFjACegQIAxAC&url=https%3A%2F%2Ffilezilla-project.org%2F&usg=AOvVaw0vUm4-x_Jtf5eF3tpKkxjC)
+
+## Step 1 — Updating and Configuring Filesystem Permissions
+
+Logon to ftp client using the following
+
+**host:**  [ftp.yomilk.gnarus.io](http://ftp.yomilk.gnarus.io/)
+
+**user:** www-data
+
+**password:** bSqlp19aTpRqaOzIiX83
+
+**port:** 2021
+
+**Click on Quick Connect**
+
+![](image/README/1611904335135.png)Once you now have ftp access to the yomilk site, please make sure to make a local backup of the files ([How do I backup using FTP?](https://www.google.com/url?sa=t&rct=j&q=&esrc=s&source=web&cd=&cad=rja&uact=8&ved=2ahUKEwjdhKbuy8DuAhWKecAKHYjoBtgQFjABegQIBBAC&url=http%3A%2F%2Fwww.webhostinghub.com%2Fhelp%2Flearn%2Fwebsite%2Fmanaging-files%2Fcreate-a-backup-using-ftp&usg=AOvVaw2ub7rStKSzIw46epGn_vY6)) before changing anything.
+
+## Step 2 - Create WP plugin
+
+This will be a very basic plugin with one php file, which i'll pop in a folder in WP_ plugins dir e.g. [YOUR PATH]/wp-content/plugins/react-wordpress and inside that react-wordpress.php. For simplicity, I will name the plugin react-wordpress. AS FOR THE [YOUR PATH], i will use ***wordpress*** Run the following command, replacing wordpress with your Apache document root:
+
+```
+mkdir /var/www/wordpress/wp-content/plugins/react-wordpress
+```
+
+Then Navigate to the newly created directory
+```
+cd /var/www/wordpress/wp-content/plugins/react-wordpress
+```
+Let’s create the plugin file now. Open up ``react-wordpress.php``  and add the following lines:
+
+```
+<?php
+/**
+ * @wordpress-plugin
+ * Plugin Name: Embedding React app to Wordpress widget
+ * Description: Embedding React app In Wordpress widget using a shortCode
+ * Version: 0.1.0
+ * Author: Gnarus-io
+ */
+
+defined( 'ABSPATH' ) or die( 'Direct script access disallowed.' );
+
+define( 'ERW_WIDGET_PATH', plugin_dir_path( __FILE__ ) . '/widget' );
+define( 'ERW_ASSET_MANIFEST', ERW_WIDGET_PATH . '/build/asset-manifest.json' );
+define( 'ERW_INCLUDES', plugin_dir_path( __FILE__ ) . '/includes' );
+
+require_once( ERW_INCLUDES . '/enqueue.php' );
+require_once( ERW_INCLUDES . '/shortcode.php' );
+```
+
+We have defined some constants:
+> The commented section at the top provides metadata for the plugin
+> ***ABSPATH*** — prevents a bad actor from accessing this script directly by its URL. ABSPATH is the absolute path to your WordPress root directory, so if ABSPATH is defined, you can be sure the file was loaded through the WordPress environment.
+> ***ERW_WIDGET_PATH*** — This will be the path to the React application.
+> ***ERW_ASSET_MANIFEST*** — This is the path to the React asset manifest, a file that contains the list of JavaScript and CSS files that need to be included on the page for your application to work.
+> ***ERW_INCLUDES:*** — This subdirectory will contain all of the PHP files.
+
+Note that each define() refers to plugin_dir_path( __FILE__ ). That stands for the directory path to that file.
+
+save and exit file
+
+``cd /var/www/wordpress/wp-content/plugins/react-wordpress``. Then, create the folder: ``includes/`` which will contain the other PHP files, start at the top level of the plugin directory
+Now that you’ve scaffolded the PHP-related files and folders needed to make a WordPress plugin, you will create the initial files and folders for React.
+
+Next, open up a web browser and navigate to the Plugins page of your domain (https://wordpress/wp-admin/plugins.php). You will see your plugin listed along with WordPress’s default plugins:
+
+[Input plugins page pic]
+Click **Activate** to enable your plugin.
+
+## Step 3 — Initializing the React Application
+
+In plugin dir (from cmd line) run:
+
+```npx create-react-app widget```
+The create-react-app command will generate a project folder and all of the necessary files for a basic React app **widget**.
+ 
+ Then ``cd widget`` and you'll be able to run the app using default build command ``npm run build``
+ 
+Your project is now built, but before moving to the next step, it is a best practice to ensure that your application only loads if it is present.
+
+Open and edit ``src/index.js`` 
+```
+import React from 'react';
+import ReactDOM from 'react-dom';
+import './index.css';
+import App from './App';
+
+const target = document.getElementById('erw-root');
+if (target) { ReactDOM.render(<App />, target); }
+
+```
+In this file, you made two important changes to the default index.js file:
+You changed the target element from <div id="root"></div> to <div id="erw-root"></div> so it is namespaced for your application.
+You enclosed the call to ReactDOM.render() in an if (...) statement so that the app is only loaded if it is present.
+
+``npm run build``
+
+## Step 4 — Enqueueing the JavaScript and CSS Files
+
+``cd /var/www/wordpress/wp-content/plugins/react-wordpress/includes``
+Create the ``enqueue.php`` file inside the includes/ folder:
+```
+<?php
+// This file enqueues scripts and styles
+
+defined( 'ABSPATH' ) or die( 'Direct script access diallowed.' );
+
+add_action( 'init', function() {
+
+  add_filter( 'script_loader_tag', function( $tag, $handle ) {
+    if ( ! preg_match( '/^erw-/', $handle ) ) { return $tag; }
+    return str_replace( ' src', ' async defer src', $tag );
+  }, 10, 2 );
+
+  add_action( 'wp_enqueue_scripts', function() {
+
+  });
+});
+```
+Save and quit this file.
+Adding a function to the ``init`` action means that this code will be run during the init phase of the load process, which is after your theme and other plugins have loaded.
+The ``wp_enqueue_scripts`` action then enqueues front-end items.
+Setting the `async` and defer attributes on the ``<script>`` tags using the script_loader_tag filter tells the browser to load the scripts asynchronously instead of blocking DOM construction and page rendering.
+
+Be sure to write the file and exit.
+
+## Step 5 — Parsing the Asset Manifest
+In this step, you will parse the `widget/build/asset-manifest.json` generated by the React build into a list of JavaScript and CSS files. To parse it, your code will look for object keys that end with `.js` and ``.css``.
+
+Open up your ``enqueue.php file:`` and update it to contain
+```
+<?php
+// This file enqueues scripts and styles
+
+defined( 'ABSPATH' ) or die( 'Direct script access disallowed.' );
+
+add_action( 'init', function() {
+
+  add_filter( 'script_loader_tag', function( $tag, $handle ) {
+    if ( ! preg_match( '/^erw-/', $handle ) ) { return $tag; }
+    return str_replace( ' src', ' async defer src', $tag );
+  }, 10, 2 );
+
+  add_action( 'wp_enqueue_scripts', function() {
+
+    $asset_manifest = json_decode( file_get_contents( ERW_ASSET_MANIFEST ), true )['files'];
+
+    if ( isset( $asset_manifest[ 'main.css' ] ) ) {
+      wp_enqueue_style( 'erw', get_site_url() . $asset_manifest[ 'main.css' ] );
+    }
+
+    wp_enqueue_script( 'erw-runtime', get_site_url() . $asset_manifest[ 'runtime~main.js' ], array(), null, true );
+
+    wp_enqueue_script( 'erw-main', get_site_url() . $asset_manifest[ 'main.js' ], array('erw-runtime'), null, true );
+
+    foreach ( $asset_manifest as $key => $value ) {
+      if ( preg_match( '@static/js/(.*)\.chunk\.js@', $key, $matches ) ) {
+        if ( $matches && is_array( $matches ) && count( $matches ) === 2 ) {
+          $name = "erw-" . preg_replace( '/[^A-Za-z0-9_]/', '-', $matches[1] );
+          wp_enqueue_script( $name, get_site_url() . $value, array( 'erw-main' ), null, true );
+        }
+      }
+
+      if ( preg_match( '@static/css/(.*)\.chunk\.css@', $key, $matches ) ) {
+        if ( $matches && is_array( $matches ) && count( $matches ) == 2 ) {
+          $name = "erw-" . preg_replace( '/[^A-Za-z0-9_]/', '-', $matches[1] );
+          wp_enqueue_style( $name, get_site_url() . $value, array( 'erw' ), null );
+        }
+      }
+    }
+
+  });
+});
+```
+
+## Step 6 — Serving and Securing Static Files
+At this point, you have told WordPress which JavaScript and CSS files to load and where to find them. However, if you visit https://your_domain in the browser and look at the JavaScript console, you will see HTTP 404 errors.
+This is because the URL route to the file (e.g., /static/js/main.2d1d08c1.chunk.js) does not match the actual path to the file (e.g., /wp-content/plugins/react-wordpress/widget/build/static/js/main.2d1d08c1.chunk.js).
+
+To give React the correct path to your app, open `package.json` inside of your React application’s directory:
+add this
+ "homepage": "/wp-content/plugins/react-wordpress/widget/build",
+
+``npm run build``
+
+You will see that the file paths have all changed:
+``cd var/www/wordpress/wp-content/plugins/react-wordpress/widget/build/asset-manifest.json``
+
+This tells your app where to find the correct files, but also presents a problem: It exposes the path to your app’s `src` directory, and somebody who is familiar with create-react-app could visit ``https://your_domain/wp-content/plugins/react-wordpress/widget/src/index.js`` and start exploring the source files for your app. Try it yourself!
+
+To protect the paths you do not want users to access, add an Apache rewrite rule to your WordPress’s ``/var/www/wordpress/.htaccess`` file
+
+Add the four highlighted lines:
+``
+<IfModule mod_rewrite.c>
+RewriteRule ^wp-content/plugins/react-wordpress/widget/(build|public)/(.*) - [L]
+RewriteRule ^wp-content/plugins/react-wordpress/widget/* totally-bogus-erw.php [L]
+</IfModule>
+``
+This tells Apache to allow browser requests to anything at ``wp-content/plugins/react-wordpress/widget/build/`` or ``wp-content/react-wordpress/widget/public/``. Anything else will redirect to ``totally-bogus-erw.php``
+
+## Step 7 — Creating a Shortcode
+In this step, you will create and register a WordPress shortcode and use that to embed your application in the page.
+
+
+``cd /var/www/wordpress/wp-content/plugins/react-wordpress/``
+Create a new PHP file that will contain the shortcode:
+
+```
+<?php
+// This file enqueues a shortcode.
+
+defined( 'ABSPATH' ) or die( 'Direct script access disallowed.' );
+
+add_shortcode( 'erw_widget', function( $atts ) {
+  $default_atts = array();
+  $args = shortcode_atts( $default_atts, $atts );
+
+  return "<div id='erw-root'></div>";
+});
+```
+It registers a shortcode named `erw_widget` that, when invoked, prints ``<div id="erw-root"></div>``, the React app’s root element, to the page.
+
+Save and quit shortcode.php.
+
+edit the react-wordpress.php so that it contains:
+
+```
+<?php
+/**
+ * @wordpress-plugin
+ * Plugin Name:       Embedding React In Wordpress
+ */
+
+defined( 'ABSPATH' ) or die( 'Direct script access diallowed.' );
+
+define( 'ERW_WIDGET_PATH', plugin_dir_path( __FILE__ ) . '/widget' );
+define( 'ERW_ASSET_MANIFEST', ERW_WIDGET_PATH . '/build/asset-manifest.json' );
+define( 'ERW_INCLUDES', plugin_dir_path( __FILE__ ) . '/includes' );
+
+require_once( ERW_INCLUDES . '/enqueue.php' );
+require_once( ERW_INCLUDES . '/shortcode.php' );
+```
+Save and quit
+
+
+## Create a WordPress page
+Navigate to pages section. Hover over the + New button and a menu will drop down
+
+Add a Tittle
+Choose a section below that reads ``Start writing or type / to choose a block``
+Type the shortcode [erw_widget] into the newly-added text area. Then, click the blue ``Publish``
+```Click View Page``` and see the react app showing on the screen.
+Now that you have a basic React app rendering in the page, you can customize that app with options provided server-side by an admin.
+
+Cheers!!!!!
+References: 
+https://www.digitalocean.com/community/tutorials/how-to-embed-a-react-application-in-wordpress-on-ubuntu-18-04
